@@ -1,0 +1,8 @@
+#!/bin/bash
+# pro-go - Start pro-mpt interactive mode from anywhere
+
+PRO_MPT_HOME="/home/alexg/Res/pro-mpt"
+
+# Activate venv and run interactive mode
+source "$PRO_MPT_HOME/venv/bin/activate" 2>/dev/null || true
+python "$PRO_MPT_HOME/pro_mpt.py" interactive

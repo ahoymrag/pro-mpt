@@ -1,0 +1,49 @@
+#!/bin/bash
+# pro-grow - Automated growth routine
+# Run daily to see your learning journey and get insights
+
+PRO_MPT_HOME="/home/alexg/Res/pro-mpt"
+
+# Source config
+if [ -f "$PRO_MPT_HOME/.env" ]; then
+    source "$PRO_MPT_HOME/.env"
+else
+    PRO_MPT_HOME="/home/alexg/Res/pro-mpt"
+fi
+
+# Activate venv
+source "$PRO_MPT_HOME/venv/bin/activate" 2>/dev/null || true
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                   🌱 PRO-MPT GROWTH ROUTINE 🌱                 ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+
+# 1. Morning greeting
+echo "━━━ Morning Summary ━━━"
+python "$PRO_MPT_HOME/pro_mpt.py" morning
+echo ""
+
+# 2. Growth stats
+echo "━━━ Your Growth Stats ━━━"
+python "$PRO_MPT_HOME/pro_mpt.py" stats
+echo ""
+
+# 3. Expertise by domain
+echo "━━━ Expertise Trajectory ━━━"
+python "$PRO_MPT_HOME/pro_mpt.py" expertise
+echo ""
+
+# 4. Auto-insights (run Python script that analyzes patterns)
+echo "━━━ Auto-Generated Insights ━━━"
+python "$PRO_MPT_HOME/analyze_growth.py" 2>/dev/null || echo "[Insights engine ready when you're ready]"
+echo ""
+
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║  Next Steps:                                                   ║"
+echo "║  • pro-log \"question\" --rating 5  (Quick log)                 ║"
+echo "║  • pro-search \"topic\"             (Find old prompts)          ║"
+echo "║  • pro-go                         (Interactive mode)           ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""

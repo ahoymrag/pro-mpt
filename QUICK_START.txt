@@ -1,0 +1,53 @@
+PRO-MPT QUICK START
+═══════════════════════════════════════════════════════════════
+
+INTERACTIVE MODE (Like Claude Code):
+
+  python start.py
+
+  Then type commands like Claude Code:
+  > log "How do I handle state?" --model claude --rating 5
+  > search "state"
+  > stats
+  > morning
+  > help
+  > exit
+
+═══════════════════════════════════════════════════════════════
+
+OR use one-off commands (no session):
+
+  python start.py log "question" --model claude --rating 5
+  python start.py search "term"
+  python start.py stats
+  python start.py morning
+
+═══════════════════════════════════════════════════════════════
+
+RECORDING WITH CLAUDE CODE:
+
+  ./start-with-recording.sh
+
+═══════════════════════════════════════════════════════════════
+
+INTERACTIVE MODE COMMANDS:
+
+  • log "query" --model claude --rating 5
+  • search "term"
+  • list
+  • stats
+  • morning
+  • expertise [--domain dev]
+  • export [--format json|csv]
+  • help
+  • clear
+  • exit
+
+═══════════════════════════════════════════════════════════════
+
+MORE INFO:
+  • README.md     → Overview & features
+  • NEXT_STEPS.md → Day-by-day guide
+  • RECORDING.md  → Session recording
+
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,5 @@
+#!/bin/bash
+# pro-setup - Run setup
+
+PRO_MPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+bash "$PRO_MPT_HOME/setup.sh"

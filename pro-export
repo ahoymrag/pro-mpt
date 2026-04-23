@@ -1,7 +1,7 @@
 #!/bin/bash
-# pro-export - Export your data
-# Usage: pro-export --format json|csv
+# pro-export - Export your prompt archive
+# Usage: pro-export json|csv|backup|stats [options]
 
 PRO_MPT_HOME="/home/alexg/Res/pro-mpt"
 source "$PRO_MPT_HOME/venv/bin/activate" 2>/dev/null || true
-python "$PRO_MPT_HOME/pro_mpt.py" export "$@"
+python "$PRO_MPT_HOME/pro_export.py" "$@"

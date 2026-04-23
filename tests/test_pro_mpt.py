@@ -177,7 +177,7 @@ class TestEdgeCases:
 
     def test_very_long_prompt(self, temp_db):
         """Test handling of very long prompts"""
-        long_query = "x" * 3000
+        long_query = "x" * (Config.MAX_QUERY_LENGTH + 100)
         with pytest.raises(ValueError):
             InputValidator.validate_query(long_query)
 

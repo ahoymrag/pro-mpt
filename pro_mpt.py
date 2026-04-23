@@ -286,15 +286,15 @@ data_store = DataStore()
 
 
 class InputValidator:
-    """Validate user input before processing"""
+    """Validate user input before processing with friendly messages"""
 
     @staticmethod
     def validate_query(query: str) -> str:
         """Validate and clean a prompt query"""
         if not query or not query.strip():
-            raise ValueError("Query cannot be empty")
+            raise ValueError("📝 Hmm, I need something to save. What's your prompt?")
         if len(query) > Config.MAX_QUERY_LENGTH:
-            raise ValueError(f"Query too long (max {Config.MAX_QUERY_LENGTH} chars)")
+            raise ValueError(f"📚 That's quite long! Keep it under {Config.MAX_QUERY_LENGTH} characters. (You can save shorter versions and add notes separately)")
         return query.strip()
 
     @staticmethod
@@ -303,7 +303,7 @@ class InputValidator:
         if rating is None:
             return None
         if not isinstance(rating, int) or rating < Config.MIN_RATING or rating > Config.MAX_RATING:
-            raise ValueError(f"Rating must be between {Config.MIN_RATING}-{Config.MAX_RATING}")
+            raise ValueError(f"⭐ Rating should be 1-5 stars. {Config.MIN_RATING} = 'meh', {Config.MAX_RATING} = 'chef's kiss'")
         return rating
 
     @staticmethod
@@ -312,7 +312,7 @@ class InputValidator:
         if domain is None:
             return None
         if not domain.strip() or len(domain) > 100:
-            raise ValueError("Invalid domain")
+            raise ValueError("🏷️  Domains help organize your prompts. Try something like 'coding', 'creative', or 'analysis'")
         return domain.strip()
 
 

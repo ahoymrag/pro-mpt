@@ -1,0 +1,98 @@
+#!/bin/bash
+# pro-mpt - Main command wrapper for pro-mpt system
+# Works from anywhere on your computer
+
+PRO_MPT_HOME="/home/alexg/Res/pro-mpt"
+
+# Activate virtual environment if it exists
+if [ -f "$PRO_MPT_HOME/venv/bin/activate" ]; then
+    source "$PRO_MPT_HOME/venv/bin/activate" 2>/dev/null || true
+fi
+
+# If no arguments, show help and launch interactive
+if [ $# -eq 0 ]; then
+    python "$PRO_MPT_HOME/pro_mpt.py" interactive
+    exit 0
+fi
+
+# Handle subcommands
+case "$1" in
+    go|interactive)
+        python "$PRO_MPT_HOME/pro_mpt.py" interactive
+        ;;
+    log)
+        shift
+        python "$PRO_MPT_HOME/pro_mpt.py" log "$@"
+        ;;
+    search)
+        shift
+        python "$PRO_MPT_HOME/pro_mpt.py" search "$@"
+        ;;
+    list|recent)
+        shift
+        python "$PRO_MPT_HOME/pro_mpt.py" list "$@"
+        ;;
+    stats)
+        python "$PRO_MPT_HOME/pro_mpt.py" stats
+        ;;
+    export)
+        shift
+        python "$PRO_MPT_HOME/pro_export.py" "$@"
+        ;;
+    dashboard)
+        python "$PRO_MPT_HOME/dashboard.py"
+        ;;
+    chat)
+        python "$PRO_MPT_HOME/pro_chat.py"
+        ;;
+    improve)
+        python "$PRO_MPT_HOME/pro_improve.py"
+        ;;
+    help|--help|-h)
+        cat << 'EOF'
+🚀 Pro-MPT - Personal Prompt Archive & Expertise Tracker
+
+USAGE:
+  pro-mpt [COMMAND] [OPTIONS]
+
+COMMANDS:
+  (no args)         Interactive mode (recommended)
+  go                Interactive mode with all features
+  log "prompt"      Quick log from command line
+  search TERM       Find prompts by keyword
+  list|recent       Show recent prompts
+  stats             View your statistics
+  export            Export data (json/csv/backup)
+  dashboard         Live metrics dashboard
+  chat              Chat with Claude
+  improve           AI improvement suggestions
+  help              Show this help
+
+QUICK START:
+  $ pro-mpt                    # Start interactive mode
+  $ pro-mpt log "your prompt"  # Quick log
+  $ pro-mpt search "keyword"   # Search
+
+DOCUMENTATION:
+  Full docs:       cat ~/.local/bin/../USAGE.md
+  Quick ref:       cat ~/.local/bin/../QUICK_REFERENCE.md
+  Troubleshooting: cat ~/.local/bin/../TROUBLESHOOTING.md
+
+EXAMPLE:
+  $ pro-mpt
+  🚀 Ready to log? Type your prompt (or 'help')
+  > "How to optimize Python code?"
+  ⭐ Rating (1-5)? 5
+  🏷️ Domain? coding
+  ✨ Saved!
+
+For more info: https://github.com/ahoymrag/pro-mpt
+EOF
+        ;;
+    *)
+        echo "❓ Unknown command: $1"
+        echo ""
+        echo "Try: pro-mpt help"
+        exit 1
+        ;;
+esac

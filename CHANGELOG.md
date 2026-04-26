@@ -31,6 +31,25 @@ Format: `[VERSION] - YYYY-MM-DD`
 
 ---
 
+## [1.0.2] - 2026-04-26
+
+### Features
+- **Auto-import Claude Code sessions** - Automatically scans `~/.claude/projects` and imports conversation history to pro-mpt
+- **Markdown export** - Export prompts to beautiful markdown journals (filterable by domain, model, rating)
+- **Session caching** - Tracks imported sessions to avoid duplication
+
+### Improvements
+- Smart content parsing for complex message types (thinking blocks, tool results)
+- Per-project conversation imports with git branch context
+- Enhanced export with session metadata (date, model, rating, app)
+
+### Technical
+- New `import_claude_sessions.py` utility for auto-ingestion
+- Session tracking via `.imported_sessions` cache file
+- Markdown export with metadata formatting
+
+---
+
 ## [0.1.0] - 2026-04-23
 
 ### Features

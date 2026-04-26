@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 pro-export - Export your prompt archive to various formats
-Export as JSON, CSV, or backup your entire database
+Export as JSON, CSV, Markdown, or backup your entire database
 """
 
 import json
@@ -9,7 +9,7 @@ import csv
 import sqlite3
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -178,6 +178,79 @@ def stats(
         f"   • Today: {stats['today']} prompts",
         border_style="green",
         title="Stats Export Complete"
+    ))
+
+
+@app.command()
+def markdown(
+    min_rating: Optional[int] = typer.Option(None, "--min-rating", "-r", help="Only export prompts rated >= this"),
+    domain: Optional[str] = typer.Option(None, "--domain", "-d", help="Filter by domain"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Filter by model"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file (default: prompts-[domain].md)"),
+):
+    """Export prompts to Markdown journal format"""
+    prompts = get_all_prompts()
+
+    # Apply filters
+    if min_rating:
+        prompts = [p for p in prompts if p.get("rating") and p["rating"] >= min_rating]
+    if domain:
+        prompts = [p for p in prompts if p.get("domain") == domain]
+    if model:
+        prompts = [p for p in prompts if p.get("model") == model]
+
+    if not prompts:
+        console.print("[yellow]⚠️  No prompts match your filters[/yellow]")
+        return
+
+    # Generate markdown
+    md_lines = []
+    md_lines.append(f"# Pro-mpt Archive Export\n")
+    md_lines.append(f"**Exported:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    if domain:
+        md_lines.append(f"**Domain:** {domain}\n")
+    if model:
+        md_lines.append(f"**Model:** {model}\n")
+    if min_rating:
+        md_lines.append(f"**Min Rating:** {min_rating}⭐\n")
+
+    md_lines.append(f"**Total:** {len(prompts)} prompts\n\n")
+    md_lines.append("---\n\n")
+
+    # Add each prompt
+    for i, prompt in enumerate(prompts, 1):
+        timestamp = prompt.get("timestamp", "").split("T")[0]
+        rating = "⭐" * (prompt.get("rating") or 0) if prompt.get("rating") else "unrated"
+
+        md_lines.append(f"## {i}. {prompt.get('query', 'Untitled')[:80]}\n\n")
+        md_lines.append(f"**Date:** {timestamp}\n")
+        md_lines.append(f"**Model:** {prompt.get('model', 'unknown')}\n")
+        md_lines.append(f"**Domain:** {prompt.get('domain', 'general')}\n")
+        md_lines.append(f"**App:** {prompt.get('app', 'general')}\n")
+        md_lines.append(f"**Rating:** {rating}\n\n")
+
+        if prompt.get("query"):
+            md_lines.append(f"**Query:**\n```\n{prompt['query']}\n```\n\n")
+
+        if prompt.get("response"):
+            md_lines.append(f"**Response:**\n```\n{prompt['response'][:500]}\n```\n\n")
+
+        if prompt.get("notes"):
+            md_lines.append(f"**Notes:** {prompt['notes']}\n\n")
+
+        md_lines.append("---\n\n")
+
+    # Write file
+    output_file = output or Path(f"prompts-{domain or 'archive'}.md")
+    with open(output_file, "w") as f:
+        f.writelines(md_lines)
+
+    console.print(Panel(
+        f"[green]✅ Exported {len(prompts)} prompts[/green]\n"
+        f"📁 Saved to: [cyan]{output_file.absolute()}[/cyan]",
+        border_style="green",
+        title="Markdown Export Complete"
     ))
 
 

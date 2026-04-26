@@ -83,10 +83,24 @@ See:
 - Your best moments
 - Growth trajectory
 
+### 🔗 Auto-Import Claude Code Sessions
+Your conversations are automatically imported from Claude Code:
+```bash
+python import_claude_sessions.py    # Scan and import all new sessions
+```
+Automatically tracks which sessions are imported to avoid duplication.
+
+### 📄 Export to Markdown
+Create beautiful markdown journals of your expertise:
+```bash
+pro-mpt export markdown --domain dev --output my-dev-journey.md
+pro-mpt export markdown --model claude --min-rating 4
+```
+
 ### 💾 Own Your Data
 - **Local-first** - Everything stays on your machine
-- **Encrypted** - Your prompts are private
-- **Portable** - Export anytime (JSON, CSV)
+- **Portable** - Export anytime (JSON, CSV, Markdown)
+- **Auto-archiving** - Claude Code sessions imported automatically
 - **No lock-in** - Leave whenever you want
 
 ---

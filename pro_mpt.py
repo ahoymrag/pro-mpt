@@ -100,7 +100,8 @@ class DataStore:
                 response TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 rating INTEGER,
-                notes TEXT
+                notes TEXT,
+                metadata TEXT
             )
         """)
 
@@ -116,7 +117,8 @@ class DataStore:
     def add_prompt(self, query: str, model: Optional[str] = None, agent: Optional[str] = None,
                    app: Optional[str] = None, domain: Optional[str] = None,
                    version: Optional[str] = None, response: Optional[str] = None,
-                   rating: Optional[int] = None, notes: Optional[str] = None) -> str:
+                   rating: Optional[int] = None, notes: Optional[str] = None,
+                   metadata: Optional[str] = None) -> str:
         """Add a prompt to the archive. Returns the prompt ID."""
         conn = self._get_conn()
         c = conn.cursor()
@@ -125,8 +127,8 @@ class DataStore:
 
         c.execute("""
             INSERT INTO prompts
-            (id, query, model, agent, app, domain, version, response, rating, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, query, model, agent, app, domain, version, response, rating, notes, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             prompt_id,
             query,
@@ -137,7 +139,8 @@ class DataStore:
             version,
             response,
             rating,
-            notes
+            notes,
+            metadata
         ))
 
         conn.commit()

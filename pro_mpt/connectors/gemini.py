@@ -13,12 +13,20 @@ class GeminiConnector(BaseConnector):
 
     def extract_intent(self, query: str) -> str:
         """Heuristic intent extraction"""
+        query_l = query.lower()
         if "?" in query:
             return "question"
-        elif any(word in query.lower() for word in ["buy", "call", "do", "fix", "defrost"]):
+        
+        # Task detection
+        task_keywords = ["buy", "call", "do", "fix", "defrost", "get", "remind", "task", "todo"]
+        if any(word in query_l for word in task_keywords) or query_l.startswith(("1.", "2.", "3.", "- ", "* ")):
             return "task"
-        elif any(word in query.lower() for word in ["film", "story", "character", "scene"]):
+            
+        # Creative detection
+        creative_keywords = ["film", "story", "character", "scene", "citg", "creative", "idea", "graphic", "poet"]
+        if any(word in query_l for word in creative_keywords):
             return "creative"
+            
         return "unknown"
 
     def scan_and_import(self):

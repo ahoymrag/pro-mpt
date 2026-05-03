@@ -75,217 +75,11 @@ class Config:
 Config.ensure_dirs()
 
 
-class DataStore:
-    """Centralized data access layer for pro-mpt"""
+from pro_mpt.db import Database
 
-    def __init__(self, db_path: Path = None):
-        self.db_path = db_path or Config.DB_PATH
-        Config.ensure_dirs()
-        self._init_db()
-
-    def _init_db(self):
-        """Initialize database schema"""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS prompts (
-                id TEXT PRIMARY KEY,
-                query TEXT NOT NULL,
-                model TEXT,
-                agent TEXT,
-                app TEXT,
-                domain TEXT,
-                version TEXT,
-                response TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                rating INTEGER,
-                notes TEXT,
-                metadata TEXT
-            )
-        """)
-
-        conn.commit()
-        conn.close()
-
-    def _get_conn(self):
-        """Get database connection"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
-
-    def add_prompt(self, query: str, model: Optional[str] = None, agent: Optional[str] = None,
-                   app: Optional[str] = None, domain: Optional[str] = None,
-                   version: Optional[str] = None, response: Optional[str] = None,
-                   rating: Optional[int] = None, notes: Optional[str] = None,
-                   metadata: Optional[str] = None) -> str:
-        """Add a prompt to the archive. Returns the prompt ID."""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        prompt_id = str(uuid.uuid4())[:8]
-
-        c.execute("""
-            INSERT INTO prompts
-            (id, query, model, agent, app, domain, version, response, rating, notes, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            prompt_id,
-            query,
-            model or "unknown",
-            agent or "manual",
-            app or "personal",
-            domain or "general",
-            version,
-            response,
-            rating,
-            notes,
-            metadata
-        ))
-
-        conn.commit()
-        conn.close()
-        return prompt_id
-
-    def search(self, term: str, app_filter: Optional[str] = None,
-               model_filter: Optional[str] = None, domain_filter: Optional[str] = None,
-               min_rating: Optional[int] = None) -> List[sqlite3.Row]:
-        """Search prompts by term with optional filters"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        sql = "SELECT * FROM prompts WHERE query LIKE ?"
-        params = [f"%{term}%"]
-
-        if app_filter:
-            sql += " AND app = ?"
-            params.append(app_filter)
-        if model_filter:
-            sql += " AND model = ?"
-            params.append(model_filter)
-        if domain_filter:
-            sql += " AND domain = ?"
-            params.append(domain_filter)
-        if min_rating:
-            sql += " AND rating >= ?"
-            params.append(min_rating)
-
-        sql += " ORDER BY timestamp DESC"
-
-        c.execute(sql, params)
-        results = c.fetchall()
-        conn.close()
-        return results
-
-    def list_recent(self, limit: int = 10, app_filter: Optional[str] = None) -> List[sqlite3.Row]:
-        """Get recent prompts"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        sql = "SELECT * FROM prompts"
-        params = []
-
-        if app_filter:
-            sql += " WHERE app = ?"
-            params.append(app_filter)
-
-        sql += " ORDER BY timestamp DESC LIMIT ?"
-        params.append(limit)
-
-        c.execute(sql, params)
-        results = c.fetchall()
-        conn.close()
-        return results
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get statistics about prompts"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        c.execute("SELECT COUNT(*) as total FROM prompts")
-        total = c.fetchone()["total"]
-
-        c.execute("SELECT AVG(rating) as avg_rating FROM prompts WHERE rating IS NOT NULL")
-        avg_rating = c.fetchone()["avg_rating"] or 0
-
-        c.execute("SELECT COUNT(*) as today FROM prompts WHERE DATE(timestamp) = DATE('now')")
-        today = c.fetchone()["today"]
-
-        c.execute("""
-            SELECT model, COUNT(*) as count FROM prompts
-            GROUP BY model ORDER BY count DESC LIMIT 5
-        """)
-        models = c.fetchall()
-
-        c.execute("""
-            SELECT domain, COUNT(*) as count FROM prompts
-            GROUP BY domain ORDER BY count DESC LIMIT 5
-        """)
-        domains = c.fetchall()
-
-        conn.close()
-
-        return {
-            "total": total,
-            "avg_rating": avg_rating,
-            "today": today,
-            "models": models,
-            "domains": domains,
-        }
-
-    def get_expertise(self, domain: Optional[str] = None) -> Dict[str, Any]:
-        """Get expertise data for a domain or overall"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        if domain:
-            c.execute("SELECT COUNT(*) as count FROM prompts WHERE domain = ?", (domain,))
-            count = c.fetchone()["count"]
-
-            c.execute("SELECT AVG(rating) as avg FROM prompts WHERE domain = ? AND rating IS NOT NULL", (domain,))
-            avg_rating = c.fetchone()["avg"] or 0
-
-            conn.close()
-            return {
-                "domain": domain,
-                "count": count,
-                "avg_rating": avg_rating,
-                "expertise_level": min(100, int((avg_rating / 5.0) * 100))
-            }
-        else:
-            c.execute("""
-                SELECT domain, COUNT(*) as count, AVG(rating) as avg_rating
-                FROM prompts
-                GROUP BY domain
-                ORDER BY avg_rating DESC
-            """)
-            results = c.fetchall()
-            conn.close()
-            return {"domains": results}
-
-    def get_recent(self, limit: int = 5) -> List[sqlite3.Row]:
-        """Get most recent prompts"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        c.execute("SELECT * FROM prompts ORDER BY timestamp DESC LIMIT ?", (limit,))
-        results = c.fetchall()
-        conn.close()
-        return results
-
-    def get_all(self) -> List[sqlite3.Row]:
-        """Get all prompts for export"""
-        conn = self._get_conn()
-        c = conn.cursor()
-
-        c.execute("SELECT * FROM prompts ORDER BY timestamp DESC")
-        results = c.fetchall()
-        conn.close()
-        return results
-
-
-# Global data store instance
-data_store = DataStore()
+# Initialize config
+Config.ensure_dirs()
+data_store = Database(Config.DB_PATH)
 
 
 class InputValidator:
@@ -481,10 +275,10 @@ def do_log(query: str, model: Optional[str] = None, agent: Optional[str] = None,
     render_success("Prompt archived", details)
 
 
-def do_search(query: str, app_filter: Optional[str] = None, model_filter: Optional[str] = None,
-              domain_filter: Optional[str] = None, min_rating: Optional[int] = None):
+def do_search(query: str, app_filter: Optional[str] = None, 
+              domain_filter: Optional[str] = None):
     """Internal search function"""
-    results = data_store.search(query, app_filter, model_filter, domain_filter, min_rating)
+    results = data_store.search(query, app_filter, domain_filter)
 
     console.print(render_header())
 
@@ -495,30 +289,24 @@ def do_search(query: str, app_filter: Optional[str] = None, model_filter: Option
         ))
         return
 
-    # Results header
     filter_text = ""
-    if app_filter or model_filter or domain_filter:
+    if app_filter or domain_filter:
         filters = []
-        if app_filter:
-            filters.append(f"app: {app_filter}")
-        if model_filter:
-            filters.append(f"model: {model_filter}")
-        if domain_filter:
-            filters.append(f"domain: {domain_filter}")
+        if app_filter: filters.append(f"app: {app_filter}")
+        if domain_filter: filters.append(f"domain: {domain_filter}")
         filter_text = f"\n[dim]Filters: {' • '.join(filters)}[/dim]"
 
     console.print(f"\n[bold cyan]Search: '{query}'[/bold cyan][dim] — {len(results)} result(s)[/dim]{filter_text}\n")
 
-    # Display results with staggered animation
     for i, row in enumerate(results):
         console.print(render_prompt_card(row))
         if i < len(results) - 1:
             time.sleep(0.05)
 
 
-def do_list(recent: int = 10, app_filter: Optional[str] = None):
+def do_list(limit: int = 10, app_filter: Optional[str] = None):
     """Internal list function"""
-    results = data_store.list_recent(recent, app_filter)
+    results = data_store.list_recent(limit, app_filter)
 
     console.print(render_header())
 
@@ -529,7 +317,6 @@ def do_list(recent: int = 10, app_filter: Optional[str] = None):
         ))
         return
 
-    # Create premium table
     table = Table(title=f"Recent {len(results)} Prompts", box=box.ROUNDED, border_style="cyan")
     table.add_column("Model", style="magenta")
     table.add_column("Query", style="white")
@@ -551,44 +338,29 @@ def do_list(recent: int = 10, app_filter: Optional[str] = None):
 def do_stats():
     """Internal stats function"""
     stats = data_store.get_stats()
-
     console.print(render_header())
-
+    
     stats_text = f"""
 [bold cyan]Your Statistics[/bold cyan]
 
 [bold]Archive:[/bold] {stats['total']} prompts total
-[bold]Today:[/bold] {stats['today']} new prompts
-[bold]Average Rating:[/bold] {stats['avg_rating']:.1f}/5 ⭐
-
-[bold]Top Models:[/bold]
+[bold]Models:[/bold] {stats['models']} active
+[bold]Apps:[/bold] {stats['apps']} tracked
 """
-    for model in stats['models']:
-        stats_text += f"  • {model['model']}: {model['count']} prompts\n"
-
-    stats_text += "\n[bold]Top Domains:[/bold]\n"
-    for domain in stats['domains']:
-        stats_text += f"  • {domain['domain']}: {domain['count']} prompts\n"
-
     console.print(Panel(stats_text, border_style="cyan", padding=(1, 2)))
 
 
 def do_morning():
     """Internal morning greeting"""
     stats = data_store.get_stats()
-    recent = data_store.get_recent(5)
+    recent = data_store.list_recent(5)
 
     console.print(render_header())
 
     greeting = f"""[bold cyan]Good morning![/bold cyan]
 
 [dim]You've captured {stats['total']} prompts across your journey.[/dim]
-[dim]Today: {stats['today']} new prompts[/dim]
-
-[bold yellow]Your Stats[/bold yellow]
-  ⭐ Average rating: {stats['avg_rating']:.1f}/5
-  📚 Total archive: {stats['total']} prompts
-  📊 This session: {stats['today']} tracked"""
+[dim]Tracking across {stats['apps']} apps.[/dim]"""
 
     console.print(Panel(greeting, border_style="cyan", padding=(1, 2)))
 
@@ -601,96 +373,60 @@ def do_morning():
 
 def do_expertise(domain: Optional[str] = None):
     """Internal expertise function"""
-    expertise_data = data_store.get_expertise(domain)
-
-    if domain:
-        if expertise_data["count"] == 0:
-            console.print(f"[yellow]No prompts found for domain: {domain}[/yellow]")
-            return
-
-        console.print(render_header())
-        console.print(Panel(
-            f"[bold cyan]{domain.title()} Expertise[/bold cyan]\n\n"
-            f"Prompts: {expertise_data['count']}\n"
-            f"Avg Rating: {expertise_data['avg_rating']:.1f}/5\n"
-            f"Expertise: {expertise_data['expertise_level']}%",
-            border_style="cyan",
-            padding=(1, 2)
-        ))
-    else:
-        results = expertise_data.get("domains", [])
-
-        if not results:
-            console.print("[yellow]No data yet[/yellow]")
-            return
-
-        console.print(render_header())
-        table = Table(title="Your Expertise by Domain", box=box.ROUNDED, border_style="cyan")
-        table.add_column("Domain", style="cyan")
-        table.add_column("Prompts", justify="right")
-        table.add_column("Avg Rating", justify="center")
-
-        for row in results:
-            table.add_row(
-                row["domain"],
-                str(row["count"]),
-                f"{row['avg_rating']:.1f}⭐" if row["avg_rating"] else "—"
-            )
-
-        console.print(table)
+    # Simple expertise view for now
+    stats = data_store.get_stats()
+    console.print(render_header())
+    console.print(f"[bold cyan]Expertise Profile[/bold cyan]")
+    console.print(f"You have tracked {stats['total']} prompts across {stats['apps']} applications.")
 
 
 def do_export(fmt: str = "json"):
     """Internal export function"""
-    results = data_store.get_all()
+    results = data_store.list_recent(limit=1000)
 
-    # Progress bar
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         console=console,
     ) as progress:
-        task = progress.add_task("[cyan]Exporting...", total=100)
+        task = progress.add_task("[cyan]Exporting...", total=len(results))
 
+        filename = f"pro-mpt-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.{fmt}"
         if fmt == "json":
-            data = [dict(row) for row in results]
-
-            for i in range(100):
-                progress.update(task, advance=1)
-                time.sleep(0.01)
-
-            output = json.dumps(data, indent=2, default=str)
-            filename = f"pro-mpt-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
-
             with open(filename, "w") as f:
-                f.write(output)
-
-            render_success(f"Exported {len(results)} prompts to {filename}")
-
-        elif fmt == "csv":
+                json.dump(results, f, indent=2, default=str)
+        else:
             import csv
-            filename = f"pro-mpt-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
-
             with open(filename, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["id", "query", "model", "app", "domain", "rating", "date"])
+                if results:
+                    writer.writerow(results[0].keys())
+                    for row in results:
+                        writer.writerow(row.values())
+                        progress.advance(task)
 
-                for i, row in enumerate(results):
-                    progress.update(task, advance=100/len(results))
-                    time.sleep(0.01)
-                    writer.writerow([
-                        row["id"],
-                        row["query"],
-                        row["model"],
-                        row["app"],
-                        row["domain"],
-                        row["rating"],
-                        row["timestamp"],
-                    ])
+    render_success(f"Exported {len(results)} prompts to {filename}")
 
-            render_success(f"Exported {len(results)} prompts to {filename}")
+
+@app.command()
+def watch(interval: int = typer.Option(10, help="Interval in seconds")):
+    """Ambiently watch for new prompts from all sources"""
+    from ingest import main as run_ingest
+    
+    console.print(render_header())
+    console.print(Panel(
+        f"[bold green]Ambient Watch Active[/bold green]\n"
+        f"[dim]Polling every {interval}s... Press Ctrl+C to stop.[/dim]",
+        border_style="green"
+    ))
+    
+    try:
+        while True:
+            run_ingest()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Watch stopped.[/yellow]")
 
 
 @app.command()

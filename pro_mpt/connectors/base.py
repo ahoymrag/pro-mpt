@@ -1,10 +1,10 @@
 import json
-import sqlite3
 import uuid
 from pathlib import Path
 from datetime import datetime
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
+from pro_mpt.db import Database
 
 DB_PATH = Path.home() / ".pro-mpt" / "prompts.db"
 
@@ -15,6 +15,7 @@ class BaseConnector(ABC):
         self.name = name
         self.source_path = source_path
         self.cache_path = Path.home() / ".pro-mpt" / cache_name
+        self.db = Database(DB_PATH)
         self.ensure_cache()
 
     def ensure_cache(self):
@@ -37,39 +38,16 @@ class BaseConnector(ABC):
                     response: str = "", notes: str = "") -> bool:
         """Standardized method to insert into the pro-mpt database"""
         try:
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            
-            # Ensure table exists with metadata column
-            c.execute("""
-                CREATE TABLE IF NOT EXISTS prompts (
-                    id TEXT PRIMARY KEY,
-                    query TEXT NOT NULL,
-                    model TEXT,
-                    agent TEXT,
-                    app TEXT,
-                    domain TEXT,
-                    version TEXT,
-                    response TEXT,
-                    timestamp TEXT,
-                    rating INTEGER,
-                    notes TEXT,
-                    metadata TEXT
-                )
-            """)
-
-            entry_id = str(uuid.uuid4())[:8]
-            
-            c.execute("""
-                INSERT INTO prompts (id, query, model, agent, app, domain, version, response, timestamp, rating, notes, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                entry_id, query, model, agent, app, domain, "v1.0.3-refactor", 
-                response, timestamp, None, notes, json.dumps(metadata)
-            ))
-
-            conn.commit()
-            conn.close()
+            self.db.add_prompt(
+                query=query,
+                model=model,
+                agent=agent,
+                app=app,
+                domain=domain,
+                response=response,
+                notes=notes,
+                metadata=json.dumps(metadata) if isinstance(metadata, dict) else metadata
+            )
             return True
         except Exception as e:
             print(f"  ❌ Error importing to database: {e}")

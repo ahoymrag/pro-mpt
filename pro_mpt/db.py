@@ -80,8 +80,12 @@ class Database:
         
         # Try FTS first, fallback to LIKE
         try:
-            sql = "SELECT * FROM prompts WHERE rowid IN (SELECT rowid FROM prompts_fts WHERE prompts_fts MATCH ?)"
-            params = [term]
+            if not term.strip():
+                sql = "SELECT * FROM prompts WHERE query LIKE ?"
+                params = ["%"]
+            else:
+                sql = "SELECT * FROM prompts WHERE rowid IN (SELECT rowid FROM prompts_fts WHERE prompts_fts MATCH ?)"
+                params = [term]
         except:
             sql = "SELECT * FROM prompts WHERE query LIKE ?"
             params = [f"%{term}%"]
@@ -127,6 +131,9 @@ class Database:
         
         c.execute("SELECT COUNT(DISTINCT app) FROM prompts")
         stats["apps"] = c.fetchone()[0]
+
+        c.execute("SELECT COUNT(*) FROM prompts WHERE DATE(timestamp) = DATE('now')")
+        stats["today"] = c.fetchone()[0]
         
         conn.close()
         return stats

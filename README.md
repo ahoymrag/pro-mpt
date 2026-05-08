@@ -83,12 +83,22 @@ See:
 - Your best moments
 - Growth trajectory
 
-### 🔗 Auto-Import Claude Code Sessions
-Your conversations are automatically imported from Claude Code:
+### 🔗 Auto-Import & Ambient Capture
+Your conversations are automatically imported from Claude Code and Gemini CLI:
 ```bash
-python import_claude_sessions.py    # Scan and import all new sessions
+# Run one-time import
+python ingest.py
+
+# Or keep it running in the background
+pro-mpt watch
 ```
 Automatically tracks which sessions are imported to avoid duplication.
+
+### 🎭 Interactive Mode
+Type commands like Claude Code in a persistent session:
+```bash
+pro-mpt interactive
+```
 
 ### 📄 Export to Markdown
 Create beautiful markdown journals of your expertise:
@@ -194,6 +204,23 @@ pro-mpt expertise --domain machine-learning
 
 ---
 
+## Philosophy
+
+Pro-mpt is built with a specific "vibe" in mind: joyful, empowering, and local-first. See [vibe.md](vibe.md) for our full philosophy and how it shapes the tool.
+
+---
+
+## Experimental: Self-Improvement
+
+We are building an autonomous self-improvement loop for pro-mpt. This allows the system to analyze its own codebase, suggest improvements, and even apply them (with supervision).
+
+```bash
+# Run the auto-improvement cycle
+python pro_autoimprove.py
+```
+
+---
+
 ## Data Structure
 
 Everything lives in `~/.pro-mpt/prompts.db` (local SQLite):
@@ -222,9 +249,12 @@ prompts table:
 | `pro-mpt log <query>` | Save a prompt |
 | `pro-mpt search <term>` | Find prompts |
 | `pro-mpt list` | Show recent prompts |
+| `pro-mpt journal` | View daily thinking journey |
 | `pro-mpt expertise` | See your journey |
 | `pro-mpt stats` | Dashboard |
 | `pro-mpt morning` | Daily greeting |
+| `pro-mpt watch` | Ambiently watch for new prompts |
+| `pro-mpt interactive` | Interactive mode session |
 | `pro-mpt export` | Backup your data |
 
 See all options: `pro-mpt --help`
@@ -275,16 +305,18 @@ pro-mpt export --domain dev --format json > my-dev-expertise.json
 - [x] Beautiful CLI
 
 ### Phase 2: Integrations (Building)
+- [x] Ambient Capture (Claude Code & Gemini CLI)
 - [ ] GitHub integration (see commits alongside prompts)
 - [ ] Browser extension (auto-capture from ChatGPT, Claude, etc.)
 - [ ] Slack integration
 - [ ] Calendar context
 
 ### Phase 3: Agents & Intelligence
+- [x] Vibe.md (Philosophy & emotional growth)
 - [ ] Personal agent (learns your patterns)
 - [ ] Smart suggestions (auto-detect repeating questions)
-- [ ] Vibe.md (emotional growth tracking)
 - [ ] Pattern recognition
+- [ ] Self-improvement loop (Experimental)
 
 ### Phase 4: Scale
 - [ ] Cloud sync (optional, encrypted)

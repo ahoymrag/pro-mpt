@@ -350,25 +350,97 @@ def do_stats():
     console.print(Panel(stats_text, border_style="cyan", padding=(1, 2)))
 
 
+def do_journal(days: int = 7):
+    """Display prompts grouped by day as milestones"""
+    console.print(render_header())
+    
+    # Get prompts for the last N days
+    conn = data_store._get_conn()
+    c = conn.cursor()
+    c.execute("""
+        SELECT DATE(timestamp) as day, COUNT(*) as count 
+        FROM prompts 
+        GROUP BY day 
+        ORDER BY day DESC 
+        LIMIT ?
+    """, (days,))
+    milestones = c.fetchall()
+
+    if not milestones:
+        console.print("[yellow]Your journal is empty. Start your journey by logging a thought![/yellow]")
+        return
+
+    for m in milestones:
+        day_str = m["day"]
+        count = m["count"]
+        
+        # Get intents for the day
+        c.execute("""
+            SELECT metadata FROM prompts 
+            WHERE DATE(timestamp) = ? AND metadata IS NOT NULL
+        """, (day_str,))
+        meta_rows = c.fetchall()
+        intents = {}
+        for r in meta_rows:
+            try:
+                meta = json.loads(r["metadata"])
+                intent = meta.get("intent", "unknown")
+                intents[intent] = intents.get(intent, 0) + 1
+            except: pass
+
+        intent_summary = " • ".join([f"[cyan]{k}[/cyan]({v})" for k, v in intents.items()])
+        
+        console.print(Panel(
+            f"[bold cyan]{day_str}[/bold cyan] — [white]{count} prompts[/white]\n"
+            f"[dim]{intent_summary if intent_summary else 'No intent metadata'}[/dim]",
+            border_style="blue",
+            title=f"📅 Milestone",
+            title_align="left"
+        ))
+
+        # Show prompts for this day
+        day_prompts = data_store.search("", domain_filter=None) # Get all for now and filter manually
+        day_prompts = [p for p in day_prompts if p["timestamp"].startswith(day_str)]
+        
+        for p in day_prompts[:5]: # Show top 5
+            console.print(f"  [dim]•[/dim] {p['query'][:80]}{'...' if len(p['query']) > 80 else ''}")
+        
+        if count > 5:
+            console.print(f"  [dim italic]... and {count-5} more[/dim italic]")
+        console.print()
+
+    conn.close()
+
+
 def do_morning():
-    """Internal morning greeting"""
+    """Internal morning greeting with milestones"""
     stats = data_store.get_stats()
-    recent = data_store.list_recent(5)
+    
+    # Get yesterday vs today
+    conn = data_store._get_conn()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM prompts WHERE DATE(timestamp) = DATE('now', '-1 day')")
+    yesterday = c.fetchone()[0]
+    conn.close()
 
     console.print(render_header())
 
     greeting = f"""[bold cyan]Good morning![/bold cyan]
 
-[dim]You've captured {stats['total']} prompts across your journey.[/dim]
-[dim]Tracking across {stats['apps']} apps.[/dim]"""
+[bold yellow]Milestone Status[/bold yellow]
+  ✨ [bold white]{stats['today']}[/bold white] prompts today
+  ⏮  [dim]{yesterday}[/dim] prompts yesterday
+  📚 [bold cyan]{stats['total']}[/bold cyan] total moments in your archive
 
+[dim italic]You are actively pushing for v1.1.0 and CITG production.[/dim]
+"""
     console.print(Panel(greeting, border_style="cyan", padding=(1, 2)))
 
-    if recent:
-        console.print("\n[bold cyan]Recent Prompts[/bold cyan]\n")
-        for row in recent:
-            console.print(render_prompt_card(row))
-            time.sleep(0.1)
+
+@app.command()
+def journal(days: int = typer.Option(7, help="Number of days to show")):
+    """View your thinking journey grouped by day"""
+    do_journal(days)
 
 
 def do_expertise(domain: Optional[str] = None):
